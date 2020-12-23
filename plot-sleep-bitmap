@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+
+"""
+plot-sleep-bitmap visualises changes in a sleep schedule over time.
+
+Usage:
+
+    parse-saa < sleep-export.csv | tac | plot-sleep-bitmap
+
+Input events must be presented in ascending chronological order.
+
+Data is visualised as a 'calendar bitmap' where every shaded cell represents
+time spent asleep.  The bitmap has two dimensions.  Each x-axis column, running
+from left to right, represents one calendar day.  Each calendar day is further
+divided into a number of y-axis cells running from top to bottom.  Each cell
+represents a 30m block of time.  The calendar spans the entirety of input.
+
+All days are assumed to be 24 hours long, and all hours are assumed equal.
+"""
+
+import fileinput
+import sys
+from functools import partial
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+import _lib
+from _lib.ldatetime import cellsp, fmt_minutes_hhmm
+from _lib.levent import parse_events
+
+
+def _cellularise(file, cell_width_minutes):
+    event_stream = parse_events(file)
+    try:
+        event = next(event_stream)
+    except StopIteration:
+        return
+
+    for pc in cellsp(event.since, cell_width_minutes):
+        pe = event.period()
+
+        # Find a current or future sleep event.
+        while event.until < pc.since:
+            try:
+                event = next(event_stream)
+            except StopIteration:
+                return
+
+        yield {"intersectedness": pc.intersectedness(pe),
+               "date": pc.since.date(),
+               "time": pc.since.hour * 60 + pc.since.minute}
+
+
+def _build_dataframe(file, cell_width_minutes):
+    """Build and return a pandas DataFrame from parse-saa formatted data.
+
+    Args:
+        file: A file-like object open for reading.
+        cell_width_minutes: Time resolution of the resulting DataFrame.  Smaller
+            values will result in wider rows.
+
+    Returns:
+        A pandas DataFrame with structure:
+
+                midnight
+                   0    1*w  2*w  3*w ... midday ...
+            day
+            day+1
+            day+2
+
+        w is cell_width_minutes.
+
+        A cell has value 0 if no time in that cell was spent asleep.  A cell has
+        value 1 if all time in that cell was spent asleep.  A cell has value 0 <
+        x < 1 if some fraction of time in that cell was spent asleep because of
+        a wake-to-sleep or sleep-to-wake transition.
+    """
+    cells = _cellularise(file, cell_width_minutes)
+    return (pd.DataFrame.from_records(list(cells))
+            .pivot_table(values="intersectedness",
+                         index="date",
+                         columns="time",
+                         aggfunc=np.sum))
+
+
+def main(argv=None):
+    args = _lib.parse_args(argv, argspec={
+        ("--cell-width-minutes",): {
+            "type": int,
+            "metavar": "MINUTES",
+            "default": 30,
+            "help": "Cell resolution in (positive, integral) minutes.",
+        }})
+
+    data = _build_dataframe(fileinput.input(files=args.input),
+                            args.cell_width_minutes).transpose()
+
+    def _format_xtick(pfunc, intermediate_value, pos):
+        value = pfunc(intermediate_value, pos)
+        return value.strftime("%b %d")
+
+    def _format_ytick(pfunc, intermediate_value, pos):
+        return fmt_minutes_hhmm(pfunc(intermediate_value, pos))
+
+    plt.ioff()
+    plt.switch_backend("Agg")
+    sns.set_theme()
+    fig, ax = plt.subplots(
+        dpi=args.dpi,
+        figsize=(args.figsize_width_inches, args.figsize_height_inches))
+    ax = sns.heatmap(data, vmin=0, vmax=1,
+                     cmap=sns.color_palette("Blues", as_cmap=True),
+                     cbar=False, yticklabels=6, ax=ax)
+
+    # seaborn calls matplotlib's ax.set_ticks() and ax.set_[xy]ticklabels().
+    # matplotlib internally maps these tick locations to labels using a static
+    # map baked into a FuncFormatter that it creates itself.  We must call back
+    # into that parent formatter if we are to retain our desired labels.
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(
+        partial(_format_xtick, ax.xaxis.get_major_formatter().func)))
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(
+        partial(_format_ytick, ax.yaxis.get_major_formatter().func)))
+
+    ax.set_xlabel("")
+    fig.tight_layout()
+    fig.savefig(args.output)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

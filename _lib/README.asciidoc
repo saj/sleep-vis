@@ -1,0 +1,5 @@
+The module files in this directory all have names beginning with `l` because:
+
+* I am unimaginative.  Some of these local modules have names that are identical to modules in the standard library.
+* The Python 3 imports system appears to be incapable of consistently differentiating between the `datetime` module in the standard library and the `datetime` module stored here.  (Confusion may be a https://docs.python.org/3/library/doctest.html[`doctest`] quirk?)
+

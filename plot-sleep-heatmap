@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+
+"""
+plot-sleep-heatmap tallies time spent asleep by wake weekday and hour, then
+plots a heatmap visualising sleep time concentration.  Bright cells indicate
+hours in the week that are most consistently spent asleep.
+
+Usage:
+
+    parse-saa < sleep-export.csv | tac | plot-sleep-heatmap
+
+Input events must be presented in ascending chronological order.
+"""
+
+import fileinput
+import sys
+from functools import partial
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+import _lib
+from _lib.ldatetime import cellsp, weekday_idx, weekday_name
+from _lib.levent import parse_events
+
+
+def _cellularise(file):
+    event_stream = parse_events(file)
+    try:
+        event = next(event_stream)
+    except StopIteration:
+        return
+
+    for pc in cellsp(event.since):
+        pe = event.period()
+
+        # Find a current or future sleep event.
+        while event.until < pc.since:
+            try:
+                event = next(event_stream)
+            except StopIteration:
+                return
+
+        yield {"intersectedness": pc.intersectedness(pe),
+               "time": pc.since.hour,
+               "wake weekday": weekday_idx(pc.until)}
+
+
+def _build_dataframe(file):
+    return (pd.DataFrame.from_records(list(_cellularise(file)))
+            .pivot_table(values="intersectedness",
+                         index="wake weekday",
+                         columns="time",
+                         aggfunc=np.sum))
+
+
+def main(argv=None):
+    args = _lib.parse_args(argv)
+
+    data = _build_dataframe(fileinput.input(files=args.input))
+
+    def _format_xtick(pfunc, intermediate_value, pos):
+        hour = pfunc(intermediate_value, pos)
+        return f"{hour:02}:00"
+
+    def _format_ytick(pfunc, intermediate_value, pos):
+        return weekday_name(pfunc(intermediate_value, pos))
+
+    plt.ioff()
+    plt.switch_backend("Agg")
+    sns.set_theme(style="ticks")
+    fig, (ax, cax) = plt.subplots(
+        dpi=args.dpi,
+        figsize=(args.figsize_width_inches, args.figsize_height_inches),
+        ncols=2, gridspec_kw={"width_ratios": [0.98, 0.02]})
+    ax = sns.heatmap(data, vmin=0, cmap=sns.color_palette("mako", as_cmap=True),
+                     cbar=True, cbar_ax=cax, xticklabels=3, ax=ax)
+
+    # seaborn calls matplotlib's ax.set_ticks() and ax.set_[xy]ticklabels().
+    # matplotlib internally maps these tick locations to labels using a static
+    # map baked into a FuncFormatter that it creates itself.  We must call back
+    # into that parent formatter if we are to retain our desired labels.
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(
+        partial(_format_xtick, ax.xaxis.get_major_formatter().func)))
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(
+        partial(_format_ytick, ax.yaxis.get_major_formatter().func)))
+
+    ax.yaxis.set_tick_params(labelrotation=0)
+    fig.tight_layout()
+    fig.savefig(args.output)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

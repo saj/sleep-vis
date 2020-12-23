@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+"""
+plot-delta-since plots the difference between adjacent wake->sleep (bed) times.
+
+Usage:
+
+    parse-saa < sleep-export.csv | tac | plot-delta-since
+
+Input events must be presented in ascending chronological order.
+"""
+
+import datetime
+import fileinput
+import sys
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+import _lib
+from _lib.levent import parse_events
+from _lib.litertools import nextnr
+
+
+def _deltas(file):
+    for events in nextnr(parse_events(file)):
+        if len(events) < 2:
+            break
+        laste, nexte = events[0], events[1]
+        delta_minutes = (nexte.since - laste.since).total_seconds() / 60
+        yield nexte.since, delta_minutes
+
+
+def _build_dataframe(file):
+    rows = list(_deltas(file))
+    df = pd.DataFrame.from_records(((r[1],) for r in rows),
+                                   index=[r[0] for r in rows],
+                                   columns=["Δ bedtime"])
+    df["7d rolling mean"] = df.rolling(window=7)["Δ bedtime"].mean()
+    return df
+
+
+def main(argv=None):
+    args = _lib.parse_args(argv)
+
+    data = _build_dataframe(fileinput.input(files=args.input))
+
+    def _format_ytick(value, unused_pos):
+        return str(datetime.timedelta(seconds=value))
+
+    plt.ioff()
+    plt.switch_backend("Agg")
+    sns.set_theme(style="ticks")
+    fig, ax = plt.subplots(dpi=args.dpi,
+                           figsize=(args.figsize_width_inches,
+                                    args.figsize_height_inches))
+    ax = sns.lineplot(data=data, ax=ax)
+    ax.lines[0].set_linewidth(1)
+    ax.lines[1].set_linewidth(2)
+    ax.lines[0].set_alpha(0.5)
+    ax.lines[1].set_alpha(0.9)
+    ax.xaxis.axis_date()
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(_format_ytick))
+    fig.tight_layout()
+    fig.savefig(args.output)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

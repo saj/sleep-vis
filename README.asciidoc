@@ -1,0 +1,27 @@
+Assorted scripts used to analyse my absurd sleeping patterns.
+
+Requires an installation of Python 3.7 or later, https://pandas.pydata.org/[Pandas], https://matplotlib.org/[Matplotlib], and https://seaborn.pydata.org/[Seaborn].
+
+See link:parse-saa[`parse-saa`] for the expected data schema.
+
+The examples below were generated using real data spanning approximately six months:
+
+----
+./parse-saa < sleep-export.csv | head -n 180 | tac | ...
+----
+
+link:plot-sleep-bitmap[`plot-sleep-bitmap`] plots sleeping hours over a wide calendar, highlighting sleeping patterns that diverge from the natural rise and setting of the sun.
+
+image::doc/plot-sleep-bitmap.png[]
+
+link:plot-sleep-heatmap[`plot-sleep-heatmap`] plots a sleep heatmap by weekday, showing which hours in the week are most consistently spent asleep.
+
+image::doc/plot-sleep-heatmap.png[]
+
+link:plot-delta-since[`plot-delta-since`] plots the difference between adjacent bed times.  This plot is particularly effective at exposing https://en.wikipedia.org/wiki/Non-24-hour_sleep%E2%80%93wake_disorder[N24 disorders].
+
+image::doc/plot-delta-since.png[]
+
+link:plot-duration-by-wake-weekday[`plot-duration-by-wake-weekday`] calculates sleep duration distributions by wake weekday, providing an answer to the question _How much sleep do I get?_
+
+image::doc/plot-duration-by-wake-weekday.png[]

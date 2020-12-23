@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+
+"""
+parse-saa parses exported CSV data from Sleep as Android to JSON.
+
+Usage:
+
+    parse-saa < sleep-export.csv
+
+To export sleep-export.csv from Sleep as Android:
+
+    1. Open the hamburger menu.
+    2. Touch 'Backup'.
+    3. Touch 'Export data'.  A zip archive with name sleep-export.zip will be
+       written to your mobile device.
+    4. Copy sleep-export.zip to a computer and extract the archive.  A file with
+       name sleep-export.csv should be found therein; feed that file on stdin.
+
+Outputs one JSON object per line for each sleep event.  Each object has the
+following keys:
+
+    since: Start of sleep event in LOCAL-TIME format.
+    until: End of sleep event in LOCAL-TIME format.
+
+LOCAL-TIME is an RFC 3339 like time stamp without trailing time zone.  e.g.:
+
+    2020-11-13T13:22
+
+Time is relative to the local time zone of the mobile device at the moment an
+event was captured.
+
+Sleep as Android exports events in descending chronological order.  The most
+recent event is exported first.  Upstream ordering is maintained.
+"""
+
+import csv
+import json
+import os
+import sys
+import time
+
+
+def _format_time(t):
+    return time.strftime("%Y-%m-%dT%H:%M", t)
+
+
+def _parse_time(saat):
+    return time.strptime(saat, "%d. %m. %Y %H:%M")
+
+
+def _translate_time(saat):
+    return _format_time(_parse_time(saat))
+
+
+def _parse(file):
+    for row in csv.reader(file):
+        # Headers are scattered all throughout the file.
+        if str(row[0]).lower() == "id":
+            continue
+        yield {k: f(row[i]) for k, (i, f) in _FIELDS.items()}
+
+
+_FIELDS = {
+    "since": (2, _translate_time),
+    "until": (3, _translate_time),
+}
+
+
+def main(unused_argv=None):
+    for row in _parse(sys.stdin):
+        try:
+            json.dump(row, sys.stdout)
+            print(flush=True)
+        except BrokenPipeError:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+            break
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
