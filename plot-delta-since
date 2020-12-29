@@ -10,13 +10,14 @@ Usage:
 Input events must be presented in ascending chronological order.
 """
 
-import datetime
 import fileinput
 import sys
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import numpy as np
 import pandas as pd
-import seaborn as sns
 
 import _lib
 from _lib.levent import parse_events
@@ -28,40 +29,57 @@ def _deltas(file):
         if len(events) < 2:
             break
         laste, nexte = events[0], events[1]
-        delta_minutes = (nexte.since - laste.since).total_seconds() / 60
-        yield nexte.since, delta_minutes
+        delta_seconds = (nexte.since - laste.since).total_seconds()
+        yield nexte.since, delta_seconds
 
 
 def _build_dataframe(file):
-    rows = list(_deltas(file))
-    df = pd.DataFrame.from_records(((r[1],) for r in rows),
-                                   index=[r[0] for r in rows],
-                                   columns=["Δ bedtime"])
-    df["7d rolling mean"] = df.rolling(window=7)["Δ bedtime"].mean()
+    df = pd.DataFrame.from_records(
+        np.fromiter(_deltas(file),
+                    dtype=[("date", "datetime64[ns]"),
+                           ("delta", "uint32")]),
+        index="date")
+    df["delta_norm"] = df["delta"].astype("int32") - 60*60*24
+    df["sma_norm"] = df.rolling(window=7)["delta_norm"].mean()
     return df
 
 
 def main(argv=None):
     args = _lib.parse_args(argv)
+    args = _lib.parse_args(argv, {
+        ("--figsize-height-inches",): {
+            "default": _lib.MP_DEFAULT_FIGURE_HEIGHT_INCHES,
+        }})
 
     data = _build_dataframe(fileinput.input(files=args.input))
 
     def _format_ytick(value, unused_pos):
-        return str(datetime.timedelta(seconds=value))
+        return int(value / 60 / 60)
 
     plt.ioff()
     plt.switch_backend("Agg")
-    sns.set_theme(style="ticks")
+    plt.style.use("seaborn-darkgrid")
     fig, ax = plt.subplots(dpi=args.dpi,
                            figsize=(args.figsize_width_inches,
                                     args.figsize_height_inches))
-    ax = sns.lineplot(data=data, ax=ax)
+    ax.step(data.index, data["delta_norm"], "-", label="Δ bed time")
+    ax.plot(data.index, data["sma_norm"], "-", label="SMA (7d)")
     ax.lines[0].set_linewidth(1)
-    ax.lines[1].set_linewidth(2)
     ax.lines[0].set_alpha(0.5)
-    ax.lines[1].set_alpha(0.9)
-    ax.xaxis.axis_date()
+    ax.lines[1].set_linewidth(3)
+    ax.lines[1].set_alpha(0.5)
+    ax.legend()
+
+    xloc = mdates.AutoDateLocator(minticks=3, maxticks=7)
+    ax.xaxis.set_major_locator(xloc)
+    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(xloc))
+
+    # ax.set_ylim([60*60*-8, None])
+    ax.yaxis.set_major_locator(mticker.MultipleLocator(60*60*4))
+    ax.axhline(0, color="black", linewidth=1, dashes=(1, 2))
     ax.yaxis.set_major_formatter(plt.FuncFormatter(_format_ytick))
+    ax.set_ylabel("hours - 24")
+
     fig.tight_layout()
     fig.savefig(args.output)
 

@@ -235,34 +235,23 @@ def weekday_name(wdidx):
 
 
 def fmt_seconds_hhmm(s):
-    """Format a positive duration s seconds as hh:mm.
+    """Format a duration s seconds as hh:mm.
 
     >>> fmt_seconds_hhmm(4500.48)
     '01:15'
 
-    >>> fmt_seconds_hhmm(-3600)
-    Traceback (most recent call last):
-        ...
-    ValueError: value is negative: -3600
+    >>> fmt_seconds_hhmm(-4500.48)
+    '-01:15'
 
     """
+    sign = ""
     if s < 0:
-        raise ValueError(f"value is negative: {s!r}")
-    s = int(s)
+        sign = "-"
+    s = abs(int(s))
     h = s // (60 * 60)
     s -= h * 60 * 60
     m = s // 60
-    return f"{h:02}:{m:02}"
-
-
-def fmt_minutes_hhmm(m):
-    """Format a positive duration m minutes as hh:mm.
-
-    >>> fmt_minutes_hhmm(75.48)
-    '01:15'
-
-    """
-    return fmt_seconds_hhmm(m * 60)
+    return f"{sign}{h:02}:{m:02}"
 
 
 if __name__ == "__main__":

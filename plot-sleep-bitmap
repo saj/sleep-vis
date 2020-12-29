@@ -28,7 +28,7 @@ import pandas as pd
 import seaborn as sns
 
 import _lib
-from _lib.ldatetime import cellsp, fmt_minutes_hhmm
+from _lib.ldatetime import cellsp, fmt_seconds_hhmm
 from _lib.levent import parse_events
 
 
@@ -103,7 +103,7 @@ def main(argv=None):
         return value.strftime("%b %d")
 
     def _format_ytick(pfunc, intermediate_value, pos):
-        return fmt_minutes_hhmm(pfunc(intermediate_value, pos))
+        return fmt_seconds_hhmm(pfunc(intermediate_value, pos) * 60)
 
     plt.ioff()
     plt.switch_backend("Agg")
