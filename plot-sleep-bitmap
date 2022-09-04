@@ -102,7 +102,7 @@ def main(argv=None):
 
     plt.ioff()
     plt.switch_backend("Agg")
-    sns.set_theme()
+    sns.set_theme(style="ticks")
 
     fig, ax = plt.subplots(
         dpi=args.dpi,
