@@ -20,9 +20,10 @@ All days are assumed to be 24 hours long, and all hours are assumed equal.
 
 import fileinput
 import sys
-from functools import partial
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -80,9 +81,9 @@ def _build_dataframe(file, cell_width_minutes):
     """
     cells = _cellularise(file, cell_width_minutes)
     return (pd.DataFrame.from_records(list(cells))
-            .pivot_table(values="intersectedness",
-                         index="date",
+            .pivot_table(index="date",
                          columns="time",
+                         values="intersectedness",
                          aggfunc=np.sum))
 
 
@@ -95,36 +96,30 @@ def main(argv=None):
             "help": "Cell resolution in (positive, integral) minutes.",
         }})
 
-    data = _build_dataframe(fileinput.input(files=args.input),
-                            args.cell_width_minutes).transpose()
-
-    def _format_xtick(pfunc, intermediate_value, pos):
-        value = pfunc(intermediate_value, pos)
-        return value.strftime("%b %d")
-
-    def _format_ytick(pfunc, intermediate_value, pos):
-        return fmt_seconds_hhmm(pfunc(intermediate_value, pos) * 60)
+    data = (_build_dataframe(fileinput.input(files=args.input),
+                             args.cell_width_minutes)
+            .transpose())
 
     plt.ioff()
     plt.switch_backend("Agg")
     sns.set_theme()
+
     fig, ax = plt.subplots(
         dpi=args.dpi,
         figsize=(args.figsize_width_inches, args.figsize_height_inches))
-    ax = sns.heatmap(data, vmin=0, vmax=1,
-                     cmap=sns.color_palette("Blues", as_cmap=True),
-                     cbar=False, yticklabels=6, ax=ax)
+    ax.pcolormesh(data.columns, data.index, data, vmin=0, vmax=1,
+                  cmap=sns.color_palette("Blues", as_cmap=True),
+                  rasterized=True)
 
-    # seaborn calls matplotlib's ax.set_ticks() and ax.set_[xy]ticklabels().
-    # matplotlib internally maps these tick locations to labels using a static
-    # map baked into a FuncFormatter that it creates itself.  We must call back
-    # into that parent formatter if we are to retain our desired labels.
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(
-        partial(_format_xtick, ax.xaxis.get_major_formatter().func)))
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(
-        partial(_format_ytick, ax.yaxis.get_major_formatter().func)))
+    xloc = mdates.AutoDateLocator(minticks=3, maxticks=10)
+    xfmt = mdates.ConciseDateFormatter(xloc)
+    ax.xaxis.set_major_locator(xloc)
+    ax.xaxis.set_major_formatter(xfmt)
 
-    ax.set_xlabel("")
+    ax.invert_yaxis()
+    ax.yaxis.set_major_locator(mticker.MultipleLocator(60 * 3))
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, pos: fmt_seconds_hhmm(y * 60)))
+
     fig.tight_layout()
     fig.savefig(args.output)
 
