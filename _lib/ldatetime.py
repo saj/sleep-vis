@@ -3,12 +3,16 @@ import datetime
 import typing
 
 from _lib import ltesting
-from _lib.litertools import nextnr
+from _lib.litertools import nextnrfull
 
 
-DEFAULT_CELL_WIDTH_MINUTES = 60
+HOURS_IN_DAY    = 24
+MINUTES_IN_HOUR = 60
+MINUTES_IN_DAY  = MINUTES_IN_HOUR * HOURS_IN_DAY
+SECONDS_IN_HOUR = 60 * 60
+SECONDS_IN_DAY  = SECONDS_IN_HOUR * HOURS_IN_DAY
 
-_MINUTES_IN_DAY = 24 * 60
+DEFAULT_CELL_WIDTH_MINUTES = MINUTES_IN_HOUR
 
 
 class Period(typing.NamedTuple):
@@ -208,15 +212,15 @@ def cellsp(start, cell_width_minutes=DEFAULT_CELL_WIDTH_MINUTES):
     datetime.datetime(2020, 1, 7, 1, 0)
 
     """
-    for bounds in nextnr(cells(start, cell_width_minutes)):
+    for bounds in nextnrfull(cells(start, cell_width_minutes)):
         yield Period(since=bounds[0], until=bounds[1])
 
 
 def cells_in_day(cell_width_minutes=DEFAULT_CELL_WIDTH_MINUTES):
-    if _MINUTES_IN_DAY % cell_width_minutes:
+    if MINUTES_IN_DAY % cell_width_minutes:
         raise ValueError(f"cell width {cell_width_minutes!r} is not a factor "
-                         f"of {_MINUTES_IN_DAY}")
-    return _MINUTES_IN_DAY // cell_width_minutes
+                         f"of {MINUTES_IN_DAY}")
+    return MINUTES_IN_DAY // cell_width_minutes
 
 
 def ymd(dt):
@@ -248,8 +252,8 @@ def fmt_seconds_hhmm(s):
     if s < 0:
         sign = "-"
     s = abs(int(s))
-    h = s // (60 * 60)
-    s -= h * 60 * 60
+    h = s // SECONDS_IN_HOUR
+    s -= h * SECONDS_IN_HOUR
     m = s // 60
     return f"{sign}{h:02}:{m:02}"
 

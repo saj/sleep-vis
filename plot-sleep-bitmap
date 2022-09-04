@@ -23,13 +23,12 @@ import sys
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
 import _lib
-from _lib.ldatetime import cellsp, fmt_seconds_hhmm
+from _lib.ldatetime import MINUTES_IN_HOUR, cellsp, fmt_seconds_hhmm
 from _lib.levent import parse_events
 
 
@@ -62,9 +61,12 @@ def main(argv=None):
     ax.xaxis.set_major_locator(xloc)
     ax.xaxis.set_major_formatter(xfmt)
 
+    @plt.FuncFormatter
+    def _format_ytick(v, unused_pos):
+        return fmt_seconds_hhmm(v * MINUTES_IN_HOUR)
     ax.invert_yaxis()
-    ax.yaxis.set_major_locator(mticker.MultipleLocator(60 * 3))
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, pos: fmt_seconds_hhmm(y * 60)))
+    ax.yaxis.set_major_locator(plt.MultipleLocator(3 * MINUTES_IN_HOUR))
+    ax.yaxis.set_major_formatter(_format_ytick)
 
     fig.tight_layout()
     fig.savefig(args.output)
@@ -121,7 +123,7 @@ def _cellularise(file, cell_width_minutes):
 
         yield {"intersectedness": pc.intersectedness(pe),
                "date": pc.since.date(),
-               "time": pc.since.hour * 60 + pc.since.minute}
+               "time": pc.since.hour * MINUTES_IN_HOUR + pc.since.minute}
 
 
 if __name__ == "__main__":

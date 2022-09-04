@@ -18,6 +18,7 @@ import pandas as pd
 import seaborn as sns
 
 import _lib
+from _lib.ldatetime import SECONDS_IN_HOUR
 from _lib.ldatetime import fmt_seconds_hhmm, weekday_idx, weekday_name
 from _lib.levent import parse_events
 
@@ -30,26 +31,30 @@ def main(argv=None):
 
     data = _build_dataframe(fileinput.input(files=args.input))
 
-    def _format_xtick(value, unused_pos):
-        return weekday_name(int(value))
-
-    def _format_ytick(value, unused_pos):
-        return fmt_seconds_hhmm(value)
-
     plt.ioff()
     plt.switch_backend("Agg")
     sns.set_theme(palette="pastel")
     sns.set_style(rc={"ytick.left": True})
+
     fig, ax = plt.subplots(
         dpi=args.dpi,
         figsize=(args.figsize_width_inches, args.figsize_height_inches))
     ax = sns.boxplot(x="wake weekday", y="duration", data=data, ax=ax)
-    ax.set_ylim(ymin=60*60*2, ymax=60*60*12)
+
+    @plt.FuncFormatter
+    def _format_xtick(v, unused_pos):
+        return weekday_name(int(v))
     ax.yaxis.set_label_text("duration (hh:mm)")
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(_format_xtick))
-    ax.yaxis.set_major_locator(plt.MultipleLocator(60*60*2))
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(_format_ytick))
-    ax.yaxis.set_minor_locator(plt.MultipleLocator(60*60))
+    ax.xaxis.set_major_formatter(_format_xtick)
+    ax.yaxis.set_major_locator(plt.MultipleLocator(2 * SECONDS_IN_HOUR))
+
+    @plt.FuncFormatter
+    def _format_ytick(v, unused_pos):
+        return fmt_seconds_hhmm(v)
+    ax.set_ylim(ymin=2 * SECONDS_IN_HOUR, ymax=12 * SECONDS_IN_HOUR)
+    ax.yaxis.set_major_formatter(_format_ytick)
+    ax.yaxis.set_minor_locator(plt.MultipleLocator(SECONDS_IN_HOUR))
+
     fig.tight_layout()
     fig.savefig(args.output)
 

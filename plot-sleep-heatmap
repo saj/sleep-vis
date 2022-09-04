@@ -16,7 +16,6 @@ import fileinput
 import sys
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -47,12 +46,12 @@ def main(argv=None):
     def _format_xtick(x, unused_pos):
         hour = int(x)
         return f"{hour:02}:00"
-    ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
+    ax.xaxis.set_major_locator(plt.MultipleLocator(3))
     ax.xaxis.set_major_formatter(_format_xtick)
 
     @plt.FuncFormatter
-    def _format_ytick(y, unused_pos):
-        idx = int(y)
+    def _format_ytick(v, unused_pos):
+        idx = int(v)
         if idx < 0 or idx > 6:
             return ""
         return weekday_name(idx)
