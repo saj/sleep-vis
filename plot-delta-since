@@ -27,10 +27,7 @@ from _lib.litertools import nextnrfull
 
 
 def main(argv=None):
-    args = _lib.parse_args(argv, {
-        ("--figsize-height-inches",): {
-            "default": _lib.MP_DEFAULT_FIGURE_HEIGHT_INCHES,
-        }})
+    args = _lib.parse_args(argv)
 
     data = _build_dataframe(fileinput.input(files=args.input))
 
