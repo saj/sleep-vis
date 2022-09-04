@@ -24,10 +24,7 @@ from _lib.levent import parse_events
 
 
 def main(argv=None):
-    args = _lib.parse_args(argv, {
-        ("--figsize-height-inches",): {
-            "default": _lib.MP_DEFAULT_FIGURE_HEIGHT_INCHES,
-        }})
+    args = _lib.parse_args(argv)
 
     data = _build_dataframe(fileinput.input(files=args.input))
 
@@ -50,7 +47,7 @@ def main(argv=None):
     @plt.FuncFormatter
     def _format_ytick(v, unused_pos):
         return fmt_seconds_hhmm(v)
-    ax.set_ylim(ymin=2 * SECONDS_IN_HOUR, ymax=12 * SECONDS_IN_HOUR)
+    ax.set_ylim(ymin=2 * SECONDS_IN_HOUR, ymax=16 * SECONDS_IN_HOUR)
     ax.yaxis.set_major_locator(plt.MultipleLocator(2 * SECONDS_IN_HOUR))
     ax.yaxis.set_minor_locator(plt.MultipleLocator(SECONDS_IN_HOUR))
     ax.yaxis.set_major_formatter(_format_ytick)
