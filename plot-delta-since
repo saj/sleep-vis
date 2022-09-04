@@ -46,7 +46,7 @@ def main(argv=None):
     ax.lines[0].set_linewidth(1)
     ax.lines[0].set_alpha(0.5)
     ax.lines[1].set_linewidth(3)
-    ax.lines[1].set_alpha(0.5)
+    ax.lines[1].set_alpha(0.8)
     ax.legend()
 
     xloc = mdates.AutoDateLocator(minticks=3, maxticks=10)

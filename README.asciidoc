@@ -4,10 +4,10 @@ Requires an installation of Python 3.7 or later, https://pandas.pydata.org/[Pand
 
 See link:parse-saa[`parse-saa`] for the expected data schema.
 
-The examples below were generated using real data spanning approximately six months:
+The examples below were generated using real data spanning approximately two years:
 
 ----
-./parse-saa < sleep-export.csv | head -n 180 | tac | ...
+./parse-saa < sleep-export.csv | head -n $((365 * 2)) | tac | ...
 ----
 
 link:plot-sleep-bitmap[`plot-sleep-bitmap`] plots sleeping hours over a wide calendar, highlighting sleeping patterns that diverge from the natural rise and setting of the sun.
