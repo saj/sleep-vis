@@ -1,0 +1,17 @@
+[MASTER]
+
+persistent=no
+
+
+[MESSAGES CONTROL]
+
+disable=duplicate-code,
+        fixme,
+        invalid-name,
+        missing-docstring
+
+
+[REPORTS]
+
+output-format=text
+score=no
