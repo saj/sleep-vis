@@ -26,36 +26,6 @@ from _lib.ldatetime import cellsp, weekday_idx, weekday_name
 from _lib.levent import parse_events
 
 
-def _cellularise(file):
-    event_stream = parse_events(file)
-    try:
-        event = next(event_stream)
-    except StopIteration:
-        return
-
-    for pc in cellsp(event.since):
-        pe = event.period()
-
-        # Find a current or future sleep event.
-        while event.until < pc.since:
-            try:
-                event = next(event_stream)
-            except StopIteration:
-                return
-
-        yield {"intersectedness": pc.intersectedness(pe),
-               "time": pc.since.hour,
-               "wake weekday": weekday_idx(pc.until)}
-
-
-def _build_dataframe(file):
-    return (pd.DataFrame.from_records(list(_cellularise(file)))
-            .pivot_table(index="wake weekday",
-                         columns="time",
-                         values="intersectedness",
-                         aggfunc=np.sum))
-
-
 def main(argv=None):
     args = _lib.parse_args(argv)
 
@@ -93,6 +63,36 @@ def main(argv=None):
 
     fig.tight_layout()
     fig.savefig(args.output)
+
+
+def _build_dataframe(file):
+    return (pd.DataFrame.from_records(list(_cellularise(file)))
+            .pivot_table(index="wake weekday",
+                         columns="time",
+                         values="intersectedness",
+                         aggfunc=np.sum))
+
+
+def _cellularise(file):
+    event_stream = parse_events(file)
+    try:
+        event = next(event_stream)
+    except StopIteration:
+        return
+
+    for pc in cellsp(event.since):
+        pe = event.period()
+
+        # Find a current or future sleep event.
+        while event.until < pc.since:
+            try:
+                event = next(event_stream)
+            except StopIteration:
+                return
+
+        yield {"intersectedness": pc.intersectedness(pe),
+               "time": pc.since.hour,
+               "wake weekday": weekday_idx(pc.until)}
 
 
 if __name__ == "__main__":

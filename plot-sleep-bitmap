@@ -33,60 +33,6 @@ from _lib.ldatetime import cellsp, fmt_seconds_hhmm
 from _lib.levent import parse_events
 
 
-def _cellularise(file, cell_width_minutes):
-    event_stream = parse_events(file)
-    try:
-        event = next(event_stream)
-    except StopIteration:
-        return
-
-    for pc in cellsp(event.since, cell_width_minutes):
-        pe = event.period()
-
-        # Find a current or future sleep event.
-        while event.until < pc.since:
-            try:
-                event = next(event_stream)
-            except StopIteration:
-                return
-
-        yield {"intersectedness": pc.intersectedness(pe),
-               "date": pc.since.date(),
-               "time": pc.since.hour * 60 + pc.since.minute}
-
-
-def _build_dataframe(file, cell_width_minutes):
-    """Build and return a pandas DataFrame from parse-saa formatted data.
-
-    Args:
-        file: A file-like object open for reading.
-        cell_width_minutes: Time resolution of the resulting DataFrame.  Smaller
-            values will result in wider rows.
-
-    Returns:
-        A pandas DataFrame with structure:
-
-                midnight
-                   0    1*w  2*w  3*w ... midday ...
-            day
-            day+1
-            day+2
-
-        w is cell_width_minutes.
-
-        A cell has value 0 if no time in that cell was spent asleep.  A cell has
-        value 1 if all time in that cell was spent asleep.  A cell has value 0 <
-        x < 1 if some fraction of time in that cell was spent asleep because of
-        a wake-to-sleep or sleep-to-wake transition.
-    """
-    cells = _cellularise(file, cell_width_minutes)
-    return (pd.DataFrame.from_records(list(cells))
-            .pivot_table(index="date",
-                         columns="time",
-                         values="intersectedness",
-                         aggfunc=np.sum))
-
-
 def main(argv=None):
     args = _lib.parse_args(argv, argspec={
         ("--cell-width-minutes",): {
@@ -122,6 +68,60 @@ def main(argv=None):
 
     fig.tight_layout()
     fig.savefig(args.output)
+
+
+def _build_dataframe(file, cell_width_minutes):
+    """Build and return a pandas DataFrame from parse-saa formatted data.
+
+    Args:
+        file: A file-like object open for reading.
+        cell_width_minutes: Time resolution of the resulting DataFrame.  Smaller
+            values will result in wider rows.
+
+    Returns:
+        A pandas DataFrame with structure:
+
+                midnight
+                   0    1*w  2*w  3*w ... midday ...
+            day
+            day+1
+            day+2
+
+        w is cell_width_minutes.
+
+        A cell has value 0 if no time in that cell was spent asleep.  A cell has
+        value 1 if all time in that cell was spent asleep.  A cell has value 0 <
+        x < 1 if some fraction of time in that cell was spent asleep because of
+        a wake-to-sleep or sleep-to-wake transition.
+    """
+    cells = _cellularise(file, cell_width_minutes)
+    return (pd.DataFrame.from_records(list(cells))
+            .pivot_table(index="date",
+                         columns="time",
+                         values="intersectedness",
+                         aggfunc=np.sum))
+
+
+def _cellularise(file, cell_width_minutes):
+    event_stream = parse_events(file)
+    try:
+        event = next(event_stream)
+    except StopIteration:
+        return
+
+    for pc in cellsp(event.since, cell_width_minutes):
+        pe = event.period()
+
+        # Find a current or future sleep event.
+        while event.until < pc.since:
+            try:
+                event = next(event_stream)
+            except StopIteration:
+                return
+
+        yield {"intersectedness": pc.intersectedness(pe),
+               "date": pc.since.date(),
+               "time": pc.since.hour * 60 + pc.since.minute}
 
 
 if __name__ == "__main__":

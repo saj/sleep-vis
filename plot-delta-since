@@ -24,28 +24,7 @@ from _lib.levent import parse_events
 from _lib.litertools import nextnr
 
 
-def _deltas(file):
-    for events in nextnr(parse_events(file)):
-        if len(events) < 2:
-            break
-        laste, nexte = events[0], events[1]
-        delta_seconds = (nexte.since - laste.since).total_seconds()
-        yield nexte.since, delta_seconds
-
-
-def _build_dataframe(file):
-    df = pd.DataFrame.from_records(
-        np.fromiter(_deltas(file),
-                    dtype=[("date", "datetime64[ns]"),
-                           ("delta", "uint32")]),
-        index="date")
-    df["delta_norm"] = df["delta"].astype("int32") - 60*60*24
-    df["sma_norm"] = df.rolling(window=7)["delta_norm"].mean()
-    return df
-
-
 def main(argv=None):
-    args = _lib.parse_args(argv)
     args = _lib.parse_args(argv, {
         ("--figsize-height-inches",): {
             "default": _lib.MP_DEFAULT_FIGURE_HEIGHT_INCHES,
@@ -82,6 +61,26 @@ def main(argv=None):
 
     fig.tight_layout()
     fig.savefig(args.output)
+
+
+def _build_dataframe(file):
+    df = pd.DataFrame.from_records(
+        np.fromiter(_deltas(file),
+                    dtype=[("date", "datetime64[ns]"),
+                           ("delta", "uint32")]),
+        index="date")
+    df["delta_norm"] = df["delta"].astype("int32") - 60*60*24
+    df["sma_norm"] = df.rolling(window=7)["delta_norm"].mean()
+    return df
+
+
+def _deltas(file):
+    for events in nextnr(parse_events(file)):
+        if len(events) < 2:
+            break
+        laste, nexte = events[0], events[1]
+        delta_seconds = (nexte.since - laste.since).total_seconds()
+        yield nexte.since, delta_seconds
 
 
 if __name__ == "__main__":

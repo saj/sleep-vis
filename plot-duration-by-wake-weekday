@@ -22,16 +22,6 @@ from _lib.ldatetime import fmt_seconds_hhmm, weekday_idx, weekday_name
 from _lib.levent import parse_events
 
 
-def _durations(file):
-    for event in parse_events(file):
-        yield {"duration": event.period().duration_seconds,
-               "wake weekday": weekday_idx(event.until)}
-
-
-def _build_dataframe(file):
-    return pd.DataFrame.from_records(list(_durations(file)))
-
-
 def main(argv=None):
     args = _lib.parse_args(argv, {
         ("--figsize-height-inches",): {
@@ -62,6 +52,16 @@ def main(argv=None):
     ax.yaxis.set_minor_locator(plt.MultipleLocator(60*60))
     fig.tight_layout()
     fig.savefig(args.output)
+
+
+def _build_dataframe(file):
+    return pd.DataFrame.from_records(list(_durations(file)))
+
+
+def _durations(file):
+    for event in parse_events(file):
+        yield {"duration": event.period().duration_seconds,
+               "wake weekday": weekday_idx(event.until)}
 
 
 if __name__ == "__main__":

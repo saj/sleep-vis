@@ -11,16 +11,19 @@ To export sleep-export.csv from Sleep as Android:
 
     1. Open the hamburger menu.
     2. Touch 'Backup'.
-    3. Touch 'Export data'.  A zip archive with name sleep-export.zip will be
-       written to your mobile device.
-    4. Copy sleep-export.zip to a computer and extract the archive.  A file with
-       name sleep-export.csv should be found therein; feed that file on stdin.
+    3. Touch 'Export data'.
+       The application will write a zip archive with name sleep-export.zip.
+       You will be given the option to share the file -- using, e.g., Google
+       Drive -- which can sometimes be more convenient.
+    4. Copy sleep-export.zip to your workstation and extract the archive.
+       A file with name sleep-export.csv should be found therein;
+       feed sleep-export.csv on stdin.
 
-Outputs one JSON object per line for each sleep event.  Each object has the
-following keys:
+This program writes one JSON object per line for each input sleep event.
+Each object has the following keys:
 
-    since: Start of sleep event in LOCAL-TIME format.
-    until: End of sleep event in LOCAL-TIME format.
+    since: start of sleep event in LOCAL-TIME format
+    until:   end of sleep event "                  "
 
 LOCAL-TIME is an RFC 3339 like time stamp without trailing time zone.  e.g.:
 
@@ -29,8 +32,9 @@ LOCAL-TIME is an RFC 3339 like time stamp without trailing time zone.  e.g.:
 Time is relative to the local time zone of the mobile device at the moment an
 event was captured.
 
-Sleep as Android exports events in descending chronological order.  The most
-recent event is exported first.  Upstream ordering is maintained.
+Sleep as Android exports events in descending chronological order.
+The most recent event is exported first.
+This program honours upstream ordering.
 """
 
 import csv
@@ -38,32 +42,6 @@ import json
 import os
 import sys
 import time
-
-
-def _format_time(t):
-    return time.strftime("%Y-%m-%dT%H:%M", t)
-
-
-def _parse_time(saat):
-    return time.strptime(saat, "%d. %m. %Y %H:%M")
-
-
-def _translate_time(saat):
-    return _format_time(_parse_time(saat))
-
-
-def _parse(file):
-    for row in csv.reader(file):
-        # Headers are scattered all throughout the file.
-        if str(row[0]).lower() == "id":
-            continue
-        yield {k: f(row[i]) for k, (i, f) in _FIELDS.items()}
-
-
-_FIELDS = {
-    "since": (2, _translate_time),
-    "until": (3, _translate_time),
-}
 
 
 def main(unused_argv=None):
@@ -75,6 +53,32 @@ def main(unused_argv=None):
             devnull = os.open(os.devnull, os.O_WRONLY)
             os.dup2(devnull, sys.stdout.fileno())
             break
+
+
+def _parse(file):
+    for row in csv.reader(file):
+        # Headers are scattered all throughout the file.
+        if str(row[0]).lower() == "id":
+            continue
+        yield {k: f(row[i]) for k, (i, f) in _FIELDS.items()}
+
+
+def _translate_time(saat):
+    return _format_time(_parse_time(saat))
+
+
+def _parse_time(saat):
+    return time.strptime(saat, "%d. %m. %Y %H:%M")
+
+
+def _format_time(t):
+    return time.strftime("%Y-%m-%dT%H:%M", t)
+
+
+_FIELDS = {
+    "since": (2, _translate_time),
+    "until": (3, _translate_time),
+}
 
 
 if __name__ == "__main__":
