@@ -12,8 +12,6 @@ Input events must be presented in ascending chronological order.
 
 import fileinput
 import sys
-from collections import deque
-from datetime import timedelta
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -22,7 +20,7 @@ import pandas as pd
 
 import _lib
 from _lib.ldatetime import SECONDS_IN_DAY, SECONDS_IN_HOUR
-from _lib.levent import Event, parse_events
+from _lib.levent import merge_adjoining, parse_events
 from _lib.litertools import nextnrfull
 
 
@@ -73,52 +71,10 @@ def _build_dataframe(file):
 
 
 def _deltas(file):
-    for events in nextnrfull(_merge_adjoining_events(file)):
+    for events in nextnrfull(merge_adjoining(parse_events(file))):
         last_event, next_event = events[0], events[1]
         delta_seconds = (next_event.since - last_event.since).total_seconds()
         yield next_event.since, delta_seconds
-
-
-def _merge_adjoining_events(file, closeness=timedelta(hours=4)):
-
-    # Two events, a and b, are adjoining if b starts when a ends.
-    #
-    # How do adjoining events occur in the dataset?
-    # I suspect they are an artefact of the following real-world pattern:
-    #
-    #   An alarm is set to activate after ~8h of sleep.
-    #   I go to sleep.
-    #   ~8h later, the alarm activates, and is dismissed.  (No snooze.)
-    #   -> The first event is recorded.
-    #   I sleep some more. :)
-    #   Later, after waking naturally without an alarm,
-    #   I add a new sleep event to record the additional time spent asleep.
-    #   -> The second event is recorded.
-    #
-    # Such events are almost always perfectly adjoining.
-    # The first event ends on the same minute the next event starts.
-    #
-    # Events are not always perfectly adjoining -- for reasons unknown.
-    # We merge an event with its preceding event if they are only separated by
-    # a small number of hours.  closeness defines the merge threshold.
-
-    adj = deque()
-    for next_event in parse_events(file):
-        if not adj:
-            adj.append(next_event)
-            continue
-        last_event = adj[-1]
-        if next_event.since - last_event.until <= closeness:
-            adj.append(next_event)
-            continue
-        # not adjacent; flush
-        yield Event(since=adj[0].since, until=adj[-1].until)
-        adj.clear()
-        adj.append(next_event)
-        continue
-    if adj:
-        yield Event(since=adj[0].since, until=adj[-1].until)
-        adj.clear()
 
 
 if __name__ == "__main__":

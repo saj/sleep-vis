@@ -20,7 +20,7 @@ import seaborn as sns
 import _lib
 from _lib.ldatetime import SECONDS_IN_HOUR
 from _lib.ldatetime import fmt_seconds_hhmm, weekday_idx, weekday_name
-from _lib.levent import parse_events
+from _lib.levent import merge_adjoining, parse_events
 
 
 def main(argv=None):
@@ -62,8 +62,8 @@ def _build_dataframe(file):
 
 
 def _durations(file):
-    for event in parse_events(file):
-        yield {"duration": event.period().duration_seconds,
+    for event in merge_adjoining(parse_events(file)):
+        yield {"duration":     event.period().duration_seconds,
                "wake weekday": weekday_idx(event.until)}
 
 
