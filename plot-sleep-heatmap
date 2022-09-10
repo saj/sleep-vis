@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-plot-sleep-heatmap tallies time spent asleep by wake weekday and hour,
-then plots a heatmap visualising sleep time concentration.
+Plot a heatmap showing which hours in the week are most consistently
+spent asleep.  The heatmap is aggregated by weekday and time of day.
 Dark cells indicate hours most consistently spent asleep.
 
 Usage:
@@ -90,8 +90,8 @@ def _cellularise(file):
                 return
 
         yield {"intersectedness": pc.intersectedness(pe),
-               "time": pc.since.hour,
-               "wake weekday": weekday_idx(pc.until)}
+               "time":            pc.since.hour,
+               "wake weekday":    weekday_idx(pc.until)}
 
 
 if __name__ == "__main__":

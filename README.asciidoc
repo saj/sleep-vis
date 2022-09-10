@@ -14,7 +14,7 @@ link:plot-sleep-bitmap[`plot-sleep-bitmap`] plots sleeping hours over a wide cal
 
 image::doc/plot-sleep-bitmap.png[]
 
-link:plot-sleep-heatmap[`plot-sleep-heatmap`] plots a sleep heatmap by weekday, showing which hours in the week are most consistently spent asleep.
+link:plot-sleep-heatmap[`plot-sleep-heatmap`] shows which hours in the week are most consistently spent asleep.
 
 image::doc/plot-sleep-heatmap.png[]
 
@@ -22,6 +22,10 @@ link:plot-delta-since[`plot-delta-since`] plots the difference between adjacent 
 
 image::doc/plot-delta-since.png[]
 
-link:plot-duration-by-wake-weekday[`plot-duration-by-wake-weekday`] calculates sleep duration distributions by wake weekday, providing an answer to the question _How much sleep do I get?_
+link:plot-duration-by-wake-weekday[`plot-duration-by-wake-weekday`] aggregates sleep duration distributions by wake weekday.
 
 image::doc/plot-duration-by-wake-weekday.png[]
+
+link:plot-duration-by-since-time[`plot-duration-by-since-time`] plots sleep duration vs. bed time as a two-dimensional histogram.
+
+image::doc/plot-duration-by-since-time.png[]

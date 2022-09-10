@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-plot-sleep-bitmap visualises changes in a sleep schedule over time.
+Visualise changes in a sleep schedule over a long period.
 
 Usage:
 
@@ -9,11 +9,11 @@ Usage:
 
 Input events must be presented in ascending chronological order.
 
-Data is visualised as a 'calendar bitmap' where every shaded cell represents
-time spent asleep.  The bitmap has two dimensions.  Each x-axis column, running
-from left to right, represents one calendar day.  Each calendar day is further
-divided into a number of y-axis cells running from top to bottom.  Each cell
-represents a 30m block of time.  The calendar spans the entirety of input.
+Data is visualised as a two-dimensional 'calendar bitmap' where every shaded
+cell represents time spent asleep.  Each cell represents a 30m block of time.
+Each x-axis column represents one calendar day.
+Each calendar day is further divided into a number of y-axis rows.
+The calendar spans the entirety of input.
 
 All days are assumed to be 24 hours long, and all hours are assumed equal.
 """
